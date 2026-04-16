@@ -2,7 +2,7 @@
 
 ## Goal
 
-This repository shows how to keep custom validation in IDM as the source of truth and then reuse the same rules in an AIC registration journey.
+Customers often need custom IDM validation policies to enforce business rules, but these policies are not currently supported natively in AIC. This solution demonstrates a way to achieve them using mostly out-of-the-box behaviour. The intention is to keep IDM as the source of truth for validation and limit custom work to a small, well-defined configuration surface in `config/policy` and related settings.
 
 The demo uses:
 
