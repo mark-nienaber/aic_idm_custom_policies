@@ -154,19 +154,27 @@ The `DemoIDMPoliciesReg` journey uses `Attribute Collector` with `validateInputs
 
 Without a `uilocale/en` override, the hosted page shows the raw message keys:
 
-- [Raw validation output](screenshots/journey-raw-errors-visible.png)
-- [Raw page before submit](screenshots/journey-raw-errors-filled.png)
+[Raw validation output](screenshots/journey-raw-errors-visible.png)
+
+![Raw validation output](screenshots/journey-raw-errors-visible.png)
+
+[Raw page before submit](screenshots/journey-raw-errors-filled.png)
 
 With [uilocale-en.json](samples/uilocale-en.json) applied, the hosted page renders friendly messages:
 
-- [Localized validation output](screenshots/journey-localized-errors-visible.png)
-- [Localized page before submit](screenshots/journey-localized-errors-filled.png)
+[Localized validation output](screenshots/journey-localized-errors-visible.png)
+
+![Localized validation output](screenshots/journey-localized-errors-visible.png)
+
+[Localized page before submit](screenshots/journey-localized-errors-filled.png)
 
 ## IDM Configuration Screenshot
 
 The `mail` property configuration in IDM is shown here:
 
-- [Mail property validation in IDM](screenshots/idm-mail-validation.png)
+[Mail property validation in IDM](screenshots/idm-mail-validation.png)
+
+![Mail property validation in IDM](screenshots/idm-mail-validation.png)
 
 This is the field that carries the `acme-email-domain` policy attachment in the demo.
 
