@@ -1,38 +1,69 @@
 # AIC IDM Custom Policy Validation
 
-This repository demonstrates a simple pattern for custom IDM validation policies in PingOne Advanced Identity Cloud:
+## Goal
 
-1. Register custom IDM policies in `config/policy`
-2. Attach those policies to `managed/alpha_user` properties
-3. Reuse the same policy enforcement in an AIC registration journey through `Attribute Collector`
-4. Optionally add `uilocale/en` mappings so the hosted page shows friendly validation messages instead of raw policy keys
+This repository shows how to keep custom validation in IDM as the source of truth and then reuse the same rules in an AIC registration journey.
 
-The demo journey used here is `DemoIDMPoliciesReg` in the `alpha` realm.
+The demo uses:
 
-## Repository Contents
+- `config/policy` for the custom policy registry
+- `managed/alpha_user` for policy attachment
+- `DemoIDMPoliciesReg` in the `alpha` realm for browser validation
+- `uilocale/en` to translate raw policy keys into friendly hosted-page messages
 
-- [samples/config-policy.json](samples/config-policy.json): sample IDM `config/policy` payload with the deployed Acme custom policies.
-- [samples/sample-policy.js](samples/sample-policy.js): readable JavaScript source for the same policy functions before they are flattened into `globals.additionalPolicies`.
-- [samples/managed-alpha-user-properties.json](samples/managed-alpha-user-properties.json): sample `alpha_user` property definitions showing the custom policy attachments.
-- [samples/test-valid-alpha-user.json](samples/test-valid-alpha-user.json): example valid `alpha_user` payload.
-- [samples/test-invalid-alpha-user.json](samples/test-invalid-alpha-user.json): example invalid `alpha_user` payload that triggers every custom policy in the demo.
-- [samples/uilocale-en.json](samples/uilocale-en.json): sample `uilocale/en` document that translates the raw Acme policy keys into friendly hosted-page messages.
-- [screenshots/](screenshots/): screenshots of the IDM configuration and the journey behavior with and without localized messages.
+The sample assets in this repo are:
 
-## Demo Policies
+- [samples/sample-policy.js](samples/sample-policy.js)
+- [samples/config-policy.json](samples/config-policy.json)
+- [samples/managed-alpha-user-properties.json](samples/managed-alpha-user-properties.json)
+- [samples/uilocale-en.json](samples/uilocale-en.json)
 
-The sample registers these custom policies:
+## Step 1: Configure `config/policy`
 
-- `acme-email-domain`: email address must end in `@acme.com`
-- `acme-min-length`: minimum string length
-- `acme-max-length`: maximum string length
-- `acme-valid-au-phone`: Australian phone number validation
-- `acme-valid-au-state`: Australian state or territory abbreviation validation
-- `acme-valid-au-postcode`: Australian postcode validation
+Author the JavaScript in [samples/sample-policy.js](samples/sample-policy.js). Each policy is written in readable form with:
 
-## Demo Property Attachments
+- one `addPolicy(...)` call
+- one matching function such as `acmeEmailDomain(...)`
 
-The demo uses only the custom policies on the shown fields, with the exception of the structural `VALID_TYPE` checks that still come from the schema type:
+IDM does not store those as multi-line source files inside `config/policy`. For deployment, each `addPolicy(...)` call and function body must be flattened into a single JavaScript string entry under `globals.additionalPolicies`. The deployed example is [samples/config-policy.json](samples/config-policy.json).
+
+Typical deployment call:
+
+```http
+PUT /openidm/config/policy
+Content-Type: application/json
+Authorization: Bearer <access_token>
+```
+
+```json
+{
+  "_id": "policy",
+  "additionalFiles": [],
+  "resources": [],
+  "globals": {
+    "additionalPolicies": [
+      "addPolicy({\"policyId\":\"acme-email-domain\",\"policyExec\":\"acmeEmailDomain\",\"validateOnlyIfPresent\":true,\"policyRequirements\":[\"ACME_EMAIL_DOMAIN\"]}); function acmeEmailDomain(fullObject, value, params, property) { var domain; var normalizedValue; if (value === null || typeof value === \"undefined\" || String(value).length === 0) { return []; } domain = (params && params.domain) ? String(params.domain) : \"@acme.com\"; if (domain.charAt(0) !== \"@\") { domain = \"@\" + domain; } domain = domain.toLowerCase(); normalizedValue = String(value).toLowerCase(); if (normalizedValue.length < domain.length || normalizedValue.substring(normalizedValue.length - domain.length) !== domain) { return [{\"policyRequirement\":\"ACME_EMAIL_DOMAIN\"}]; } return []; }",
+      "addPolicy({\"policyId\":\"acme-valid-au-phone\",\"policyExec\":\"acmeValidAuPhone\",\"validateOnlyIfPresent\":true,\"policyRequirements\":[\"ACME_VALID_AU_PHONE\"]}); function acmeValidAuPhone(fullObject, value, params, property) { if (value === null || typeof value === \"undefined\" || String(value).length === 0) { return []; } var normalized = String(value).replace(/[\\s()-]/g, \"\"); if (/^\\+61[2-478]\\d{8}$/.test(normalized)) { return []; } if (/^0[2-478]\\d{8}$/.test(normalized)) { return []; } return [{\"policyRequirement\":\"ACME_VALID_AU_PHONE\"}]; }",
+      "addPolicy({\"policyId\":\"acme-valid-au-state\",\"policyExec\":\"acmeValidAuState\",\"validateOnlyIfPresent\":true,\"policyRequirements\":[\"ACME_VALID_AU_STATE\"]}); function acmeValidAuState(fullObject, value, params, property) { if (value === null || typeof value === \"undefined\" || String(value).length === 0) { return []; } var allowed = [\"ACT\", \"NSW\", \"NT\", \"QLD\", \"SA\", \"TAS\", \"VIC\", \"WA\"]; var normalized = String(value).trim().toUpperCase(); for (var i = 0; i < allowed.length; i++) { if (normalized === allowed[i]) { return []; } } return [{\"policyRequirement\":\"ACME_VALID_AU_STATE\"}]; }",
+      "addPolicy({\"policyId\":\"acme-valid-au-postcode\",\"policyExec\":\"acmeValidAuPostcode\",\"validateOnlyIfPresent\":true,\"policyRequirements\":[\"ACME_VALID_AU_POSTCODE\"]}); function acmeValidAuPostcode(fullObject, value, params, property) { if (value === null || typeof value === \"undefined\" || String(value).length === 0) { return []; } var normalized = String(value).trim(); if (!/^\\d{4}$/.test(normalized)) { return [{\"policyRequirement\":\"ACME_VALID_AU_POSTCODE\"}]; } return []; }",
+      "addPolicy({\"policyId\":\"acme-min-length\",\"policyExec\":\"acmeMinLength\",\"validateOnlyIfPresent\":true,\"policyRequirements\":[\"ACME_MIN_LENGTH\"]}); function acmeMinLength(fullObject, value, params, property) { var min = (params && typeof params.min === \"number\") ? params.min : 0; if (value === null || typeof value === \"undefined\") { return []; } var length; if (typeof value === \"string\") { length = value.length; } else if (value instanceof Array) { length = value.length; } else { return []; } if (length < min) { return [{\"policyRequirement\":\"ACME_MIN_LENGTH\",\"params\":{\"min\":min}}]; } return []; }",
+      "addPolicy({\"policyId\":\"acme-max-length\",\"policyExec\":\"acmeMaxLength\",\"validateOnlyIfPresent\":true,\"policyRequirements\":[\"ACME_MAX_LENGTH\"]}); function acmeMaxLength(fullObject, value, params, property) { var max = (params && typeof params.max === \"number\") ? params.max : 0; if (value === null || typeof value === \"undefined\") { return []; } var length; if (typeof value === \"string\") { length = value.length; } else if (value instanceof Array) { length = value.length; } else { return []; } if (length > max) { return [{\"policyRequirement\":\"ACME_MAX_LENGTH\",\"params\":{\"max\":max}}]; } return []; }"
+    ]
+  }
+}
+```
+
+Notes:
+
+- `config/policy` is a full replacement object, not a merge.
+- Every update must include the complete desired `additionalPolicies` set.
+- In practice, this should be treated as configuration-as-code and managed in the same pipeline repository as the rest of your IDM/AIC config.
+
+## Step 2: Configure `managed/alpha_user`
+
+Attach the custom policies to the relevant `alpha_user` properties. The sample payload is [samples/managed-alpha-user-properties.json](samples/managed-alpha-user-properties.json).
+
+For this demo:
 
 - `mail` -> `acme-email-domain`
 - `givenName` -> `acme-min-length`, `acme-max-length`
@@ -41,25 +72,78 @@ The demo uses only the custom policies on the shown fields, with the exception o
 - `stateProvince` -> `acme-valid-au-state`
 - `postalCode` -> `acme-valid-au-postcode`
 
-The sample property file is [managed-alpha-user-properties.json](samples/managed-alpha-user-properties.json).
+One way to apply this is to update the managed object config or the individual property schema entries. For example:
 
-## API Example
-
-The invalid test payload is [test-invalid-alpha-user.json](samples/test-invalid-alpha-user.json):
+```http
+PUT /openidm/schema/managed/alpha_user/properties/mail
+Content-Type: application/json
+Authorization: Bearer <access_token>
+```
 
 ```json
 {
-  "userName": "demopolicy-api-invalid-01",
-  "givenName": "A",
-  "sn": "B",
-  "mail": "user@gmail.com",
-  "telephoneNumber": "123",
-  "stateProvince": "ZZ",
-  "postalCode": "ABC"
+  "_id": "mail",
+  "type": "string",
+  "title": "Email Address",
+  "description": "Email Address",
+  "userEditable": true,
+  "viewable": true,
+  "searchable": true,
+  "isPersonal": true,
+  "policies": [
+    {
+      "policyId": "acme-email-domain",
+      "params": {
+        "domain": "@acme.com"
+      }
+    }
+  ]
 }
 ```
 
-Example IDM create request:
+IDM view of the `mail` property:
+
+![Mail property validation in IDM](screenshots/idm-mail-validation.png)
+
+## Step 3: Configure `uilocale/en`
+
+If you do nothing here, the journey will show raw fallback keys such as `common.policyValidationMessages.ACME_EMAIL_DOMAIN`.
+
+To translate those keys into friendly strings, create or update `uilocale/en`. The sample payload is [samples/uilocale-en.json](samples/uilocale-en.json).
+
+Typical deployment call:
+
+```http
+PUT /openidm/config/uilocale/en
+Content-Type: application/json
+Authorization: Bearer <access_token>
+```
+
+```json
+{
+  "login": {
+    "common": {
+      "policyValidationMessages": {
+        "ACME_EMAIL_DOMAIN": "Use an Acme email address that ends in {'@'}acme.com.",
+        "ACME_MIN_LENGTH": "Enter at least {min} characters.",
+        "ACME_MAX_LENGTH": "Enter no more than {max} characters.",
+        "ACME_VALID_AU_PHONE": "Enter a valid Australian phone number.",
+        "ACME_VALID_AU_STATE": "Use a valid Australian state or territory abbreviation, for example NSW or VIC.",
+        "ACME_VALID_AU_POSTCODE": "Enter a valid 4 digit Australian postcode."
+      }
+    }
+  }
+}
+```
+
+Important:
+
+- A literal `@` in a hosted-page localization string must be escaped as `{'@'}`.
+- Without that escape, the hosted page can fail during rendering.
+
+## Step 4: Test the Custom Policies Over IDM REST
+
+Example test request:
 
 ```http
 POST /openidm/managed/alpha_user?_action=create
@@ -148,48 +232,19 @@ Example response:
 }
 ```
 
-## Browser Behavior
+## Step 5: Journey Behavior Before `uilocale/en`
 
-The `DemoIDMPoliciesReg` journey uses `Attribute Collector` with `validateInputs: true`, so the same IDM policies are enforced before the flow reaches `Create Object`.
+The demo journey is `DemoIDMPoliciesReg` in the `alpha` realm. It uses `Attribute Collector` with `validateInputs: true`, so the browser reuses the IDM policy results before `Create Object`.
 
-Without a `uilocale/en` override, the hosted page shows the raw message keys:
-
-[Raw validation output](screenshots/journey-raw-errors-visible.png)
+Without `uilocale/en`, the page shows the raw fallback keys:
 
 ![Raw validation output](screenshots/journey-raw-errors-visible.png)
 
-[Raw page before submit](screenshots/journey-raw-errors-filled.png)
+## Step 6: Journey Behavior After `uilocale/en`
 
-With [uilocale-en.json](samples/uilocale-en.json) applied, the hosted page renders friendly messages:
-
-[Localized validation output](screenshots/journey-localized-errors-visible.png)
+After applying `uilocale/en`, the same invalid journey submission shows translated messages instead of raw keys:
 
 ![Localized validation output](screenshots/journey-localized-errors-visible.png)
-
-[Localized page before submit](screenshots/journey-localized-errors-filled.png)
-
-## IDM Configuration Screenshot
-
-The `mail` property configuration in IDM is shown here:
-
-[Mail property validation in IDM](screenshots/idm-mail-validation.png)
-
-![Mail property validation in IDM](screenshots/idm-mail-validation.png)
-
-This is the field that carries the `acme-email-domain` policy attachment in the demo.
-
-## Important Notes
-
-- `config/policy` is a full replacement document. Updates must preserve every custom policy you still want registered.
-- `uilocale/en` is optional. Without it, the journey shows the raw fallback key format such as `common.policyValidationMessages.ACME_EMAIL_DOMAIN`.
-- If a localized message contains a literal `@`, escape it as `{'@'}`. For example:
-
-```json
-"ACME_EMAIL_DOMAIN": "Use an Acme email address that ends in {'@'}acme.com."
-```
-
-- Without that escape, the hosted page can fail during rendering.
-- The tenant-wide locale file should stay generic enough to make sense anywhere the policy is used.
 
 ## Related Documentation
 
