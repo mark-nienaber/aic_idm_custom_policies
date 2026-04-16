@@ -1,0 +1,15 @@
+{
+  "_id": "uilocale/en",
+  "login": {
+    "common": {
+      "policyValidationMessages": {
+        "ACME_EMAIL_DOMAIN": "Use an Acme email address that ends in {'@'}acme.com.",
+        "ACME_MIN_LENGTH": "Enter at least {min} characters.",
+        "ACME_MAX_LENGTH": "Enter no more than {max} characters.",
+        "ACME_VALID_AU_PHONE": "Enter a valid Australian phone number.",
+        "ACME_VALID_AU_STATE": "Use a valid Australian state or territory abbreviation, for example NSW or VIC.",
+        "ACME_VALID_AU_POSTCODE": "Enter a valid 4 digit Australian postcode."
+      }
+    }
+  }
+}

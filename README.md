@@ -1,83 +1,189 @@
 # AIC IDM Custom Policy Validation
 
-This repository shows a way to implement custom IDM validation policies in PingOne Advanced Identity Cloud (AIC) using the native IDM policy registry, and to reuse those same policies in authentication journeys through the Attribute Collector node.
+This repository demonstrates a simple pattern for custom IDM validation policies in PingOne Advanced Identity Cloud:
 
-The goal is to keep IDM as the single source of truth for validation, while still surfacing clear, field level error messages on hosted pages during registration and profile update flows.
+1. Register custom IDM policies in `config/policy`
+2. Attach those policies to `managed/alpha_user` properties
+3. Reuse the same policy enforcement in an AIC registration journey through `Attribute Collector`
+4. Optionally add `uilocale/en` mappings so the hosted page shows friendly validation messages instead of raw policy keys
 
-## Repository contents
+The demo journey used here is `DemoIDMPoliciesReg` in the `alpha` realm.
 
-- [solution/samples/config-policy.json](solution/samples/config-policy.json): example IDM `config/policy` document that registers custom policies through `globals.additionalPolicies` and `addPolicy(...)`.
-- [solution/samples/managed-alpha-user-properties.json](solution/samples/managed-alpha-user-properties.json): example managed object property definitions that attach custom `policyId` values to `alpha_user` properties.
-- [solution/samples/test-valid-alpha-user.json](solution/samples/test-valid-alpha-user.json) and [solution/samples/test-invalid-alpha-user.json](solution/samples/test-invalid-alpha-user.json): sample payloads for a successful create and a policy failure.
-- [solution/screenshots/](solution/screenshots/): screenshots of the managed object configuration and the hosted journey pages showing custom policy validation in action.
+## Repository Contents
 
-## The pattern
+- [solution/samples/config-policy.json](solution/samples/config-policy.json): sample IDM `config/policy` payload with the deployed Acme custom policies.
+- [solution/samples/sample-policy.js](solution/samples/sample-policy.js): readable JavaScript source for the same policy functions before they are flattened into `globals.additionalPolicies`.
+- [solution/samples/managed-alpha-user-properties.json](solution/samples/managed-alpha-user-properties.json): sample `alpha_user` property definitions showing the custom policy attachments.
+- [solution/samples/test-valid-alpha-user.json](solution/samples/test-valid-alpha-user.json): example valid `alpha_user` payload.
+- [solution/samples/test-invalid-alpha-user.json](solution/samples/test-invalid-alpha-user.json): example invalid `alpha_user` payload that triggers every custom policy in the demo.
+- [solution/samples/uilocale-en.json](solution/samples/uilocale-en.json): sample `uilocale/en` document that translates the raw Acme policy keys into friendly hosted-page messages.
+- [solution/screenshots/](solution/screenshots/): screenshots of the IDM configuration and the journey behavior with and without localized messages.
 
-1. Register custom policies in IDM by pushing a `config/policy` document that includes `globals.additionalPolicies` entries. Each entry is a single line of JavaScript that calls `addPolicy(...)` with a `policyId`, a `policyExec` function, and one or more `policyRequirements` keys.
-2. Attach those `policyId` values to the relevant properties on `managed/alpha_user` (for example `mail`, `userName`, `givenName`, `sn`, `telephoneNumber`, `accountStatus`) using the standard managed object `policies` array. Parameters such as an allowed email domain can be passed through the `params` object.
-3. Use an AIC authentication journey with an Attribute Collector node configured with `validateInputs: true` so collected attributes are validated against IDM policies before the journey reaches Create Object.
-4. Provide hosted page localization through `config/uilocale/en` so that policy requirement keys such as `EMAIL_DOMAIN` render as friendly messages. The `@` character must be escaped as `{'@'}` in the message string, otherwise the translated message can fail to render.
+## Demo Policies
 
-With this pattern, direct IDM REST calls, AIC journeys and any other client that writes through the managed object endpoints all see the same custom policy behaviour.
+The sample registers these custom policies:
 
-## Example custom policies included
+- `acme-email-domain`: email address must end in `@acme.com`
+- `acme-min-length`: minimum string length
+- `acme-max-length`: maximum string length
+- `acme-valid-au-phone`: Australian phone number validation
+- `acme-valid-au-state`: Australian state or territory abbreviation validation
+- `acme-valid-au-postcode`: Australian postcode validation
 
-- `email-domain`: requires email addresses to end in an allowed domain such as `@example.com`.
-- `username-no-spaces`: rejects usernames that contain whitespace.
-- `given-name-required`: requires a non empty first name.
-- `surname-min-length`: requires a minimum surname length.
-- `telephone-format`: enforces a basic telephone format.
-- `account-status-valid`: restricts `accountStatus` to an allowed set of values.
-- `phone-required-if-active`: requires a phone number when `accountStatus` is `active`.
+## Demo Property Attachments
 
-## Screenshots
+The demo uses only the custom policies on the shown fields, with the exception of the structural `VALID_TYPE` checks that still come from the schema type:
 
-Managed object configuration in the IDM native console:
+- `mail` -> `acme-email-domain`
+- `givenName` -> `acme-min-length`, `acme-max-length`
+- `sn` -> `acme-min-length`, `acme-max-length`
+- `telephoneNumber` -> `acme-valid-au-phone`
+- `stateProvince` -> `acme-valid-au-state`
+- `postalCode` -> `acme-valid-au-postcode`
 
-- [Properties list on alpha_user](solution/screenshots/idm-alpha-user-properties-list.png)
-- [mail property details](solution/screenshots/idm-alpha-user-mail-property-details.png)
-- [mail property validation with email-domain attached](solution/screenshots/idm-alpha-user-mail-property-validation.png)
+The sample property file is [managed-alpha-user-properties.json](solution/samples/managed-alpha-user-properties.json).
 
-Hosted registration journey with the Attribute Collector node:
+## API Example
 
-- [Initial registration page](solution/screenshots/20260410-162557-01-initial.png)
-- [Invalid email domain error rendered from the localized policy message](solution/screenshots/20260410-153028-02-invalid-domain-error.png)
-- [Raw policy key shown when no uilocale override is in place](solution/screenshots/20260410-154353-no-uilocale-email-domain.png)
-- [Page after a successful submit](solution/screenshots/20260410-162557-03-after-success-submit.png)
-
-## Typical validation failure response
-
-When a custom policy fails on a direct IDM REST call, the standard policy validation error payload is returned:
+The invalid test payload is [test-invalid-alpha-user.json](solution/samples/test-invalid-alpha-user.json):
 
 ```json
 {
-  "code": 400,
-  "reason": "Bad Request",
+  "userName": "demopolicy-api-invalid-01",
+  "givenName": "A",
+  "sn": "B",
+  "mail": "user@gmail.com",
+  "telephoneNumber": "123",
+  "stateProvince": "ZZ",
+  "postalCode": "ABC"
+}
+```
+
+Example IDM create request:
+
+```http
+POST /openidm/managed/alpha_user?_action=create
+Content-Type: application/json
+Authorization: Bearer <access_token>
+```
+
+```json
+{
+  "userName": "demopolicy-api-invalid-01",
+  "givenName": "A",
+  "sn": "B",
+  "mail": "user@gmail.com",
+  "telephoneNumber": "123",
+  "stateProvince": "ZZ",
+  "postalCode": "ABC"
+}
+```
+
+Example response:
+
+```json
+{
+  "code": 403,
+  "reason": "Forbidden",
   "message": "Policy validation failed",
   "detail": {
+    "result": false,
     "failedPolicyRequirements": [
       {
-        "property": "mail",
         "policyRequirements": [
           {
-            "policyRequirement": "EMAIL_DOMAIN"
+            "params": {
+              "min": 2
+            },
+            "policyRequirement": "ACME_MIN_LENGTH"
           }
-        ]
+        ],
+        "property": "givenName"
+      },
+      {
+        "policyRequirements": [
+          {
+            "policyRequirement": "ACME_EMAIL_DOMAIN"
+          }
+        ],
+        "property": "mail"
+      },
+      {
+        "policyRequirements": [
+          {
+            "policyRequirement": "ACME_VALID_AU_POSTCODE"
+          }
+        ],
+        "property": "postalCode"
+      },
+      {
+        "policyRequirements": [
+          {
+            "params": {
+              "min": 2
+            },
+            "policyRequirement": "ACME_MIN_LENGTH"
+          }
+        ],
+        "property": "sn"
+      },
+      {
+        "policyRequirements": [
+          {
+            "policyRequirement": "ACME_VALID_AU_STATE"
+          }
+        ],
+        "property": "stateProvince"
+      },
+      {
+        "policyRequirements": [
+          {
+            "policyRequirement": "ACME_VALID_AU_PHONE"
+          }
+        ],
+        "property": "telephoneNumber"
       }
     ]
   }
 }
 ```
 
-## Operational notes
+## Browser Behavior
 
-- `config/policy` is a full replacement document, not a merge. Every update must include all desired custom policies, not just the latest change.
-- The policy functions should be treated as configuration owned code and kept under source control alongside `config-policy.json`.
-- `uilocale/en` is tenant wide, so localization messages should be written so they still make sense wherever the policy is used.
-- Create Object should remain in journey designs because IDM is still the final write path and the final enforcement point.
-- For richer audit evidence, the AIC monitoring log APIs for `idm-access`, `idm-activity` and `idm-core` can be used.
+The `DemoIDMPoliciesReg` journey uses `Attribute Collector` with `validateInputs: true`, so the same IDM policies are enforced before the flow reaches `Create Object`.
 
-## Related Ping Identity documentation
+Without a `uilocale/en` override, the hosted page shows the raw message keys:
+
+- [Raw validation output](solution/screenshots/journey-raw-errors-visible.png)
+- [Raw page before submit](solution/screenshots/journey-raw-errors-filled.png)
+
+With [uilocale-en.json](solution/samples/uilocale-en.json) applied, the hosted page renders friendly messages:
+
+- [Localized validation output](solution/screenshots/journey-localized-errors-visible.png)
+- [Localized page before submit](solution/screenshots/journey-localized-errors-filled.png)
+
+## IDM Configuration Screenshot
+
+The `mail` property configuration in IDM is shown here:
+
+- [Mail property validation in IDM](solution/screenshots/idm-mail-validation.png)
+
+This is the field that carries the `acme-email-domain` policy attachment in the demo.
+
+## Important Notes
+
+- `config/policy` is a full replacement document. Updates must preserve every custom policy you still want registered.
+- `uilocale/en` is optional. Without it, the journey shows the raw fallback key format such as `common.policyValidationMessages.ACME_EMAIL_DOMAIN`.
+- If a localized message contains a literal `@`, escape it as `{'@'}`. For example:
+
+```json
+"ACME_EMAIL_DOMAIN": "Use an Acme email address that ends in {'@'}acme.com."
+```
+
+- Without that escape, the hosted page can fail during rendering.
+- The tenant-wide locale file should stay generic enough to make sense anywhere the policy is used.
+
+## Related Documentation
 
 - [Use policies to validate data](https://docs.pingidentity.com/pingoneaic/latest/idm-objects/policies.html)
 - [Apply policies to managed objects](https://docs.pingidentity.com/pingoneaic/idm-objects/configuring-default-policy.html)

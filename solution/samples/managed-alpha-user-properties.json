@@ -4,39 +4,16 @@
     "type": "string",
     "title": "Email Address",
     "description": "Email Address",
-    "required": true,
     "userEditable": true,
     "viewable": true,
     "searchable": true,
     "isPersonal": true,
     "policies": [
       {
-        "policyId": "valid-email-address-format"
-      },
-      {
-        "policyId": "email-domain",
+        "policyId": "acme-email-domain",
         "params": {
-          "domain": "@example.com"
+          "domain": "@acme.com"
         }
-      }
-    ]
-  },
-  "userName": {
-    "_id": "userName",
-    "type": "string",
-    "title": "Username",
-    "description": "Username",
-    "required": true,
-    "userEditable": true,
-    "viewable": true,
-    "searchable": true,
-    "isPersonal": true,
-    "policies": [
-      {
-        "policyId": "valid-username"
-      },
-      {
-        "policyId": "username-no-spaces"
       }
     ]
   },
@@ -45,14 +22,22 @@
     "type": "string",
     "title": "First Name",
     "description": "First Name",
-    "required": true,
     "userEditable": true,
     "viewable": true,
     "searchable": true,
     "isPersonal": true,
     "policies": [
       {
-        "policyId": "given-name-required"
+        "policyId": "acme-min-length",
+        "params": {
+          "min": 2
+        }
+      },
+      {
+        "policyId": "acme-max-length",
+        "params": {
+          "max": 50
+        }
       }
     ]
   },
@@ -61,16 +46,21 @@
     "type": "string",
     "title": "Last Name",
     "description": "Last Name",
-    "required": true,
     "userEditable": true,
     "viewable": true,
     "searchable": true,
     "isPersonal": true,
     "policies": [
       {
-        "policyId": "surname-min-length",
+        "policyId": "acme-min-length",
         "params": {
-          "minLength": 2
+          "min": 2
+        }
+      },
+      {
+        "policyId": "acme-max-length",
+        "params": {
+          "max": 50
         }
       }
     ]
@@ -80,43 +70,43 @@
     "type": "string",
     "title": "Telephone Number",
     "description": "Telephone Number",
-    "required": false,
     "userEditable": true,
     "viewable": true,
     "searchable": true,
     "isPersonal": true,
     "policies": [
       {
-        "policyId": "telephone-format"
-      },
-      {
-        "policyId": "phone-required-if-active",
-        "params": {
-          "otherProperty": "accountStatus",
-          "equals": "active"
-        }
+        "policyId": "acme-valid-au-phone"
       }
     ]
   },
-  "accountStatus": {
-    "_id": "accountStatus",
+  "stateProvince": {
+    "_id": "stateProvince",
     "type": "string",
-    "title": "Status",
-    "description": "Status",
-    "required": false,
+    "title": "State/Province",
+    "description": "State/Province",
     "userEditable": true,
     "viewable": true,
-    "searchable": false,
+    "searchable": true,
     "isPersonal": false,
     "policies": [
       {
-        "policyId": "account-status-valid",
-        "params": {
-          "values": [
-            "active",
-            "inactive"
-          ]
-        }
+        "policyId": "acme-valid-au-state"
+      }
+    ]
+  },
+  "postalCode": {
+    "_id": "postalCode",
+    "type": "string",
+    "title": "Postal Code",
+    "description": "Postal Code",
+    "userEditable": true,
+    "viewable": true,
+    "searchable": true,
+    "isPersonal": false,
+    "policies": [
+      {
+        "policyId": "acme-valid-au-postcode"
       }
     ]
   }
