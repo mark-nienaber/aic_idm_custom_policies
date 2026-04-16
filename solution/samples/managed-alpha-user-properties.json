@@ -1,0 +1,123 @@
+{
+  "mail": {
+    "_id": "mail",
+    "type": "string",
+    "title": "Email Address",
+    "description": "Email Address",
+    "required": true,
+    "userEditable": true,
+    "viewable": true,
+    "searchable": true,
+    "isPersonal": true,
+    "policies": [
+      {
+        "policyId": "valid-email-address-format"
+      },
+      {
+        "policyId": "email-domain",
+        "params": {
+          "domain": "@example.com"
+        }
+      }
+    ]
+  },
+  "userName": {
+    "_id": "userName",
+    "type": "string",
+    "title": "Username",
+    "description": "Username",
+    "required": true,
+    "userEditable": true,
+    "viewable": true,
+    "searchable": true,
+    "isPersonal": true,
+    "policies": [
+      {
+        "policyId": "valid-username"
+      },
+      {
+        "policyId": "username-no-spaces"
+      }
+    ]
+  },
+  "givenName": {
+    "_id": "givenName",
+    "type": "string",
+    "title": "First Name",
+    "description": "First Name",
+    "required": true,
+    "userEditable": true,
+    "viewable": true,
+    "searchable": true,
+    "isPersonal": true,
+    "policies": [
+      {
+        "policyId": "given-name-required"
+      }
+    ]
+  },
+  "sn": {
+    "_id": "sn",
+    "type": "string",
+    "title": "Last Name",
+    "description": "Last Name",
+    "required": true,
+    "userEditable": true,
+    "viewable": true,
+    "searchable": true,
+    "isPersonal": true,
+    "policies": [
+      {
+        "policyId": "surname-min-length",
+        "params": {
+          "minLength": 2
+        }
+      }
+    ]
+  },
+  "telephoneNumber": {
+    "_id": "telephoneNumber",
+    "type": "string",
+    "title": "Telephone Number",
+    "description": "Telephone Number",
+    "required": false,
+    "userEditable": true,
+    "viewable": true,
+    "searchable": true,
+    "isPersonal": true,
+    "policies": [
+      {
+        "policyId": "telephone-format"
+      },
+      {
+        "policyId": "phone-required-if-active",
+        "params": {
+          "otherProperty": "accountStatus",
+          "equals": "active"
+        }
+      }
+    ]
+  },
+  "accountStatus": {
+    "_id": "accountStatus",
+    "type": "string",
+    "title": "Status",
+    "description": "Status",
+    "required": false,
+    "userEditable": true,
+    "viewable": true,
+    "searchable": false,
+    "isPersonal": false,
+    "policies": [
+      {
+        "policyId": "account-status-valid",
+        "params": {
+          "values": [
+            "active",
+            "inactive"
+          ]
+        }
+      }
+    ]
+  }
+}

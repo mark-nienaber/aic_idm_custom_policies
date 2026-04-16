@@ -1,0 +1,8 @@
+{
+  "userName": "invalid user",
+  "givenName": "",
+  "sn": "X",
+  "mail": "bad@wrong.com",
+  "telephoneNumber": "123",
+  "accountStatus": "active"
+}

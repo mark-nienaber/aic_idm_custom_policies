@@ -1,0 +1,11 @@
+{
+  "_id": "policy",
+  "additionalFiles": [],
+  "resources": [],
+  "globals": {
+    "additionalPolicies": [
+      "addPolicy({\"policyId\":\"email-domain\",\"policyExec\":\"emailDomainPolicy\",\"policyRequirements\":[\"EMAIL_DOMAIN\"]}); function emailDomainPolicy(fullObject, value, params, property) { var domain; var normalizedValue; if (value === null || typeof value === \"undefined\" || String(value).length === 0) { return []; } domain = (params && params.domain) ? String(params.domain) : \"@example.com\"; if (domain.charAt(0) !== \"@\") { domain = \"@\" + domain; } domain = domain.toLowerCase(); normalizedValue = String(value).toLowerCase(); if (normalizedValue.length < domain.length || normalizedValue.substring(normalizedValue.length - domain.length) !== domain) { return [{\"policyRequirement\":\"EMAIL_DOMAIN\"}]; } return []; }",
+      "addPolicy({\"policyId\":\"account-status-valid\",\"policyExec\":\"accountStatusValidPolicy\",\"policyRequirements\":[\"VALID_ACCOUNT_STATUS\"]}); function accountStatusValidPolicy(fullObject, value, params, property) { var allowed; var i; if (value === null || typeof value === \"undefined\" || String(value).length === 0) { return []; } allowed = (params && params.values && params.values.length) ? params.values : [\"active\", \"inactive\"]; for (i = 0; i < allowed.length; i++) { if (String(value) === String(allowed[i])) { return []; } } return [{\"policyRequirement\":\"VALID_ACCOUNT_STATUS\"}]; }"
+    ]
+  }
+}
