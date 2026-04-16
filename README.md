@@ -11,13 +11,13 @@ The demo journey used here is `DemoIDMPoliciesReg` in the `alpha` realm.
 
 ## Repository Contents
 
-- [solution/samples/config-policy.json](solution/samples/config-policy.json): sample IDM `config/policy` payload with the deployed Acme custom policies.
-- [solution/samples/sample-policy.js](solution/samples/sample-policy.js): readable JavaScript source for the same policy functions before they are flattened into `globals.additionalPolicies`.
-- [solution/samples/managed-alpha-user-properties.json](solution/samples/managed-alpha-user-properties.json): sample `alpha_user` property definitions showing the custom policy attachments.
-- [solution/samples/test-valid-alpha-user.json](solution/samples/test-valid-alpha-user.json): example valid `alpha_user` payload.
-- [solution/samples/test-invalid-alpha-user.json](solution/samples/test-invalid-alpha-user.json): example invalid `alpha_user` payload that triggers every custom policy in the demo.
-- [solution/samples/uilocale-en.json](solution/samples/uilocale-en.json): sample `uilocale/en` document that translates the raw Acme policy keys into friendly hosted-page messages.
-- [solution/screenshots/](solution/screenshots/): screenshots of the IDM configuration and the journey behavior with and without localized messages.
+- [samples/config-policy.json](samples/config-policy.json): sample IDM `config/policy` payload with the deployed Acme custom policies.
+- [samples/sample-policy.js](samples/sample-policy.js): readable JavaScript source for the same policy functions before they are flattened into `globals.additionalPolicies`.
+- [samples/managed-alpha-user-properties.json](samples/managed-alpha-user-properties.json): sample `alpha_user` property definitions showing the custom policy attachments.
+- [samples/test-valid-alpha-user.json](samples/test-valid-alpha-user.json): example valid `alpha_user` payload.
+- [samples/test-invalid-alpha-user.json](samples/test-invalid-alpha-user.json): example invalid `alpha_user` payload that triggers every custom policy in the demo.
+- [samples/uilocale-en.json](samples/uilocale-en.json): sample `uilocale/en` document that translates the raw Acme policy keys into friendly hosted-page messages.
+- [screenshots/](screenshots/): screenshots of the IDM configuration and the journey behavior with and without localized messages.
 
 ## Demo Policies
 
@@ -41,11 +41,11 @@ The demo uses only the custom policies on the shown fields, with the exception o
 - `stateProvince` -> `acme-valid-au-state`
 - `postalCode` -> `acme-valid-au-postcode`
 
-The sample property file is [managed-alpha-user-properties.json](solution/samples/managed-alpha-user-properties.json).
+The sample property file is [managed-alpha-user-properties.json](samples/managed-alpha-user-properties.json).
 
 ## API Example
 
-The invalid test payload is [test-invalid-alpha-user.json](solution/samples/test-invalid-alpha-user.json):
+The invalid test payload is [test-invalid-alpha-user.json](samples/test-invalid-alpha-user.json):
 
 ```json
 {
@@ -154,19 +154,19 @@ The `DemoIDMPoliciesReg` journey uses `Attribute Collector` with `validateInputs
 
 Without a `uilocale/en` override, the hosted page shows the raw message keys:
 
-- [Raw validation output](solution/screenshots/journey-raw-errors-visible.png)
-- [Raw page before submit](solution/screenshots/journey-raw-errors-filled.png)
+- [Raw validation output](screenshots/journey-raw-errors-visible.png)
+- [Raw page before submit](screenshots/journey-raw-errors-filled.png)
 
-With [uilocale-en.json](solution/samples/uilocale-en.json) applied, the hosted page renders friendly messages:
+With [uilocale-en.json](samples/uilocale-en.json) applied, the hosted page renders friendly messages:
 
-- [Localized validation output](solution/screenshots/journey-localized-errors-visible.png)
-- [Localized page before submit](solution/screenshots/journey-localized-errors-filled.png)
+- [Localized validation output](screenshots/journey-localized-errors-visible.png)
+- [Localized page before submit](screenshots/journey-localized-errors-filled.png)
 
 ## IDM Configuration Screenshot
 
 The `mail` property configuration in IDM is shown here:
 
-- [Mail property validation in IDM](solution/screenshots/idm-mail-validation.png)
+- [Mail property validation in IDM](screenshots/idm-mail-validation.png)
 
 This is the field that carries the `acme-email-domain` policy attachment in the demo.
 
